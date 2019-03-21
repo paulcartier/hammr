@@ -108,6 +108,148 @@ class Image(Cmd, CoreGlobal):
         doParser = self.arg_list()
         doParser.print_help()
 
+    def arg_info(self):
+        do_parser = ArgumentParser(prog=self.cmd_name + " list", add_help=True,
+                                  description="Retrieve detailed information of a generated image")
+
+        mandatory = do_parser.add_argument_group("mandatory arguments")
+
+        mandatory.add_argument('--id', dest='id', type=str, required=True,
+                               help="The unique identifier of the image to retrieve")
+
+        return do_parser
+
+    def do_info(self, args):
+        try:
+            do_parser = self.arg_info()
+            do_args = do_parser.parse_args(shlex.split(args))
+            if not do_args:
+                raise ArgumentParserError("No arguments")
+
+            images = self.get_all_images()
+
+            info_image = self.get_image(images, do_args.id)
+            if info_image is None:
+                printer.out("The image with id \"" + do_args.id + "\" doesn't exist.")
+                return 0
+
+            printer.out("Informations about [" + info_image.name + "] :")
+
+            self.do_info_draw_general(info_image)
+            self.do_info_draw_generation(info_image)
+            self.do_info_draw_publication(info_image)
+            return 0
+
+        except ArgumentParserError as e:
+            printer.out("In Arguments: " + str(e), printer.ERROR)
+            self.help_info()
+        except Exception as e:
+            return handle_uforge_exception(e)
+
+    def do_info_draw_general(self, info_image):
+        table = Texttable(0)
+        table.set_cols_dtype(["a", "t"])
+        table.set_cols_align(["l", "l"])
+
+        table.add_row(["Name", info_image.name])
+        table.add_row(["Format", info_image.targetFormat.name])
+        table.add_row(["Id", info_image.dbId])
+        table.add_row(["Version", info_image.version])
+        table.add_row(["Revision", info_image.revision])
+        table.add_row(["Uri", info_image.uri])
+
+        self.do_info_draw_source(info_image.parentUri, table)
+
+        table.add_row(["Created", info_image.created.strftime("%Y-%m-%d %H:%M:%S")])
+        table.add_row(["Size", size(info_image.fileSize)])
+        table.add_row(["Compressed", "Yes" if info_image.compress else "No"])
+
+        format_name = info_image.targetFormat.format.name
+        if format_name == "docker" or format_name == "openshift":
+            table.add_row(["RegisteringName", info_image.registeringName])
+            table.add_row(["Entrypoint", info_image.entrypoint])
+
+        print table.draw() + "\n"
+
+    def do_info_draw_source(self, parent_uri, table):
+        appliances = self.api.Users(self.login).Appliances.Getall()
+        appliances = appliances.appliances.appliance
+        for appliance in appliances:
+            if parent_uri == appliance.uri:
+                table.add_row(["OS", appliance.distributionName + " " + appliance.archName])
+                table.add_row(["Template Id", appliance.dbId])
+                table.add_row(["Description", appliance.description])
+                return
+
+        scans = self.api.Users(self.login).Scans.Getall()
+        scans = scans.scans.scan
+        for scan in scans:
+            if parent_uri == scan.uri:
+                scanned_instances = self.api.Users(self.login).Scannedinstances.Getall()
+                scanned_instances = scanned_instances.scannedInstances.scannedInstance
+                for scanned_instance in scanned_instances:
+                    if scan.scannedInstanceUri == scanned_instance.uri:
+                        distro = scanned_instance.distribution
+                        table.add_row(["OS", distro.name + " " + distro.version + " " + distro.arch])
+                        table.add_row(["Scan Id", scanned_instance.dbId])
+                        return
+
+        my_software_list = self.api.Users(self.login).Mysoftware.Getall()
+        my_software_list = my_software_list.mySoftwareList.mySoftware
+        for my_software in my_software_list:
+            if parent_uri.startswith(my_software.uri):
+                container_templates = self.api.Users(self.login).Mysoftware(my_software.dbId).Templates.Getall()
+                container_templates = container_templates.containerTemplates.containerTemplate
+                for container_template in container_templates:
+                    if parent_uri == container_template.uri:
+                        distro = container_template.distribution
+                        table.add_row(["OS", distro.name + " " + distro.version + " " + distro.arch])
+                        table.add_row(["MySoftware Id", my_software.dbId])
+                        table.add_row(["Description", my_software.description])
+                        return
+
+    def do_info_draw_generation(self, info_image):
+        table = Texttable(0)
+        table.set_cols_align(["l", "l"])
+        table.header(["Status Details", ""])
+
+        if info_image.status.error:
+            status = "Error"
+        elif info_image.status.cancelled:
+            status = "Cancelled"
+        elif info_image.status.complete:
+            status = "Done"
+        else:
+            status = "Generating"
+        table.add_row(["Status", status])
+        if info_image.status.error:
+            table.add_row(["Error Message", info_image.status.message])
+            table.add_row(["Detailed Error Message", info_image.status.errorMessage])
+        else:
+            table.add_row(["Message", info_image.status.message])
+
+        print table.draw() + "\n"
+
+    def do_info_draw_publication(self, info_image):
+        pimages = self.api.Users(self.login).Pimages.Getall()
+        table = Texttable(0)
+        table.set_cols_align(["l", "l"])
+        table.header(["Published To Details", "Cloud Id"])
+
+        has_pimage = False
+        for pimage in pimages.publishImages.publishImage:
+            if pimage.imageUri == info_image.uri:
+                has_pimage = True
+                table.add_row(["# Published", "Format Id : " + str(pimage.targetFormat.dbId) + " \nCloud Id : " + str(pimage.cloudId)])
+        if not has_pimage:
+            table.add_row(["# Published", "No published images"])
+
+        print table.draw() + "\n"
+
+    def help_info(self):
+        do_parser = self.arg_info()
+        do_parser.print_help()
+
     def arg_publish(self):
         do_parser = ArgumentParser(prog=self.cmd_name + " publish", add_help=True,
                                   description="Publish (upload and register) a built machine image to a target environment")
