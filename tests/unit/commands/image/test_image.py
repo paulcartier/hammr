@@ -47,9 +47,9 @@ class TestImage(TestCase):
         mock_table_add_row.assert_called_with([ANY, ANY, ANY, ANY, ANY, ANY, size(6000), ANY, ANY])
 
     @patch('uforge.application.Api._Users._Images.Getall')
-    @patch('hammr.commands.image.Image.do_info_draw_publication')
-    @patch('hammr.commands.image.Image.do_info_draw_generation')
-    @patch('hammr.commands.image.Image.do_info_draw_general')
+    @patch('hammr.commands.image.image.Image.do_info_draw_publication')
+    @patch('hammr.commands.image.image.Image.do_info_draw_generation')
+    @patch('hammr.commands.image.image.Image.do_info_draw_general')
     def test_do_info_should_call_draw_methods(self, mock_draw_general, mock_draw_generation, mock_draw_publication, mock_api_getall):
         # given
         i = self.prepare_image()
@@ -65,7 +65,7 @@ class TestImage(TestCase):
         mock_draw_generation.assert_called_once_with(info_image)
         mock_draw_publication.assert_called_once_with(info_image)
 
-    @patch('hammr.commands.image.Image.do_info_draw_source')
+    @patch('hammr.commands.image.image.Image.do_info_draw_source')
     @patch('texttable.Texttable.add_row')
     @patch('texttable.Texttable.draw')
     def test_do_info_draw_general(self, mock_table_draw, mock_table_add_row, mock_draw_source):
@@ -93,7 +93,7 @@ class TestImage(TestCase):
         self.assertEquals(mock_table_add_row.call_count, 9)
         mock_table_add_row.assert_has_calls(calls)
 
-    @patch('hammr.commands.image.Image.do_info_draw_source')
+    @patch('hammr.commands.image.image.Image.do_info_draw_source')
     @patch('texttable.Texttable.add_row')
     @patch('texttable.Texttable.draw')
     def test_do_info_draw_general_docker_image(self, mock_table_draw, mock_table_add_row, mock_draw_source):
