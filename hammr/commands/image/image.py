@@ -109,14 +109,11 @@ class Image(Cmd, CoreGlobal):
         doParser.print_help()
 
     def arg_info(self):
-        do_parser = ArgumentParser(prog=self.cmd_name + " list", add_help=True,
-                                  description="Retrieve detailed information of a generated image")
-
+        do_parser = ArgumentParser(prog=self.cmd_name + " info", add_help=True,
+                                  description="Displays detailed information about a machine image")
         mandatory = do_parser.add_argument_group("mandatory arguments")
-
         mandatory.add_argument('--id', dest='id', type=str, required=True,
-                               help="The unique identifier of the image to retrieve")
-
+                               help="the ID of the machine image to retrieve")
         return do_parser
 
     def do_info(self, args):
@@ -124,14 +121,14 @@ class Image(Cmd, CoreGlobal):
             do_parser = self.arg_info()
             do_args = do_parser.parse_args(shlex.split(args))
             if not do_args:
-                raise ArgumentParserError("No arguments")
+                return 2
 
             images = self.get_all_images()
 
             info_image = self.get_image(images, do_args.id)
             if info_image is None:
-                printer.out("The image with id \"" + do_args.id + "\" doesn't exist.")
-                return 0
+                printer.out("The image with id \"" + do_args.id + "\" doesn't exist.", printer.ERROR)
+                return 2
 
             printer.out("Informations about [" + info_image.name + "] :")
 

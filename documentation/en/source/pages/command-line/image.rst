@@ -49,9 +49,9 @@ Downloads a machine image to the local filesystem. The options are:
 ``info`` sub-command
 ~~~~~~~~~~~~~~~~~~~~
 
-Displays general, build and publish information about a machine image. The options are:
+Displays detailed information about a machine image. The options are:
 
-	* ``--id`` (mandatory): the ID of the machine image
+	* ``--id`` (mandatory): the ID of the machine image to retrieve
 
 ``list`` sub-command
 ~~~~~~~~~~~~~~~~~~~~
