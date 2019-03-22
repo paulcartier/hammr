@@ -123,14 +123,13 @@ class TestImage(TestCase):
         self.assertEquals(mock_table_add_row.call_count, 11)
         mock_table_add_row.assert_has_calls(calls)
 
-    @patch('uforge.application.Api._Users._Appliances.Getall')
+    @patch('uforge.application.Api._Users._Appliances.Get')
     @patch('texttable.Texttable.add_row')
-    def test_do_info_draw_source_appliance(self, mock_table_add_row, mock_api_appliances_getall):
+    def test_do_info_draw_source_appliance(self, mock_table_add_row, mock_api_appliances_get):
         # given
         i = self.prepare_image()
         appliance = self.create_appliance_do_info()
-
-        mock_api_appliances_getall.return_value = self.create_appliances_do_info(appliance)
+        mock_api_appliances_get.return_value = appliance
 
         # when
         i.do_info_draw_source(appliance.uri, Texttable(0))
@@ -144,26 +143,16 @@ class TestImage(TestCase):
         self.assertEquals(mock_table_add_row.call_count, 3)
         mock_table_add_row.assert_has_calls(calls)
 
-    @patch('uforge.application.Api._Users._Scannedinstances.Getall')
-    @patch('uforge.application.Api._Users._Scans.Getall')
-    @patch('uforge.application.Api._Users._Appliances.Getall')
+    @patch('uforge.application.Api._Users._Scannedinstances.Get')
     @patch('texttable.Texttable.add_row')
-    def test_do_info_draw_source_scan(self, mock_table_add_row, mock_api_appliances_getall, mock_api_scans_getall, mock_api_scannedinstances_getall):
+    def test_do_info_draw_source_scan(self, mock_table_add_row, mock_api_scannedinstances_get):
         # given
         i = self.prepare_image()
-        scan = self.create_scan_do_info()
-        scans = self.create_scans_do_info(scan)
         scanned_instance = self.create_scanned_instance_do_info()
-        scanned_instances = uforge.ScannedInstances()
-        scanned_instances.scannedInstances = pyxb.BIND()
-        scanned_instances.scannedInstances.append(scanned_instance)
-
-        mock_api_appliances_getall.return_value = self.create_appliances_do_info()
-        mock_api_scans_getall.return_value = scans
-        mock_api_scannedinstances_getall.return_value = scanned_instances
+        mock_api_scannedinstances_get.return_value = scanned_instance
 
         # when
-        i.do_info_draw_source(scan.uri, Texttable(0))
+        i.do_info_draw_source(scanned_instance.uri, Texttable(0))
 
         # then
         calls = []
@@ -174,27 +163,16 @@ class TestImage(TestCase):
         self.assertEquals(mock_table_add_row.call_count, 2)
         mock_table_add_row.assert_has_calls(calls)
 
-    @patch('uforge.application.Api._Users._Mysoftware._Templates.Getall')
-    @patch('uforge.application.Api._Users._Mysoftware.Getall')
-    @patch('uforge.application.Api._Users._Scans.Getall')
-    @patch('uforge.application.Api._Users._Appliances.Getall')
+    @patch('uforge.application.Api._Users._Mysoftware._Templates.Get')
+    @patch('uforge.application.Api._Users._Mysoftware.Get')
     @patch('texttable.Texttable.add_row')
-    def test_do_info_draw_source_my_software(self, mock_table_add_row, mock_api_appliances_getall, mock_api_scans_getall, mock_api_mysoftware_getall,mock_api_templates_getall):
+    def test_do_info_draw_source_my_software(self, mock_table_add_row, mock_api_mysoftware_get, mock_api_templates_get):
         # given
         i = self.prepare_image()
         my_software = self.create_my_software_do_info()
         container_template = self.create_container_template_do_info()
-        my_software_list = uforge.MySoftwareList()
-        my_software_list.mySoftwareList = pyxb.BIND()
-        my_software_list.mySoftwareList.append(my_software)
-        mock_api_mysoftware_getall.return_value = my_software_list
-        container_templates = uforge.ContainerTemplates()
-        container_templates.containerTemplates = pyxb.BIND()
-        container_templates.containerTemplates.append(container_template)
-
-        mock_api_appliances_getall.return_value = self.create_appliances_do_info()
-        mock_api_scans_getall.return_value = self.create_scans_do_info()
-        mock_api_templates_getall.return_value = container_templates
+        mock_api_mysoftware_get.return_value = my_software
+        mock_api_templates_get.return_value = container_template
 
         # when
         i.do_info_draw_source(container_template.uri, Texttable(0))
@@ -256,7 +234,6 @@ class TestImage(TestCase):
         i = self.prepare_image()
         info_image = self.create_image_do_info()
         pimage = self.create_pimage_do_info()
-
         mock_api_pimg_getall.return_value = self.create_pimages_do_info(pimage)
 
         # when
@@ -274,7 +251,6 @@ class TestImage(TestCase):
         i = self.prepare_image()
         info_image = self.create_image_do_info()
         pimage = self.create_pimages_do_info()
-
         mock_api_pimg_getall.return_value = pimage
 
         # when
@@ -454,20 +430,9 @@ class TestImage(TestCase):
 
         return appliance
 
-    def create_scan_do_info(self):
-        scannedinstance_uri = "users/guest/scannedinstances/10"
-
-        scan = uforge.Scan()
-        scan.uri = "users/guest/scannedinstances/10/scans/10"
-        scan.scannedInstanceUri = scannedinstance_uri
-
-        return scan
-
     def create_scanned_instance_do_info(self):
-        scannedinstance_uri = "users/guest/scannedinstances/10"
-
         scanned_instance = uforge.ScannedInstance()
-        scanned_instance.uri = scannedinstance_uri
+        scanned_instance.uri = "users/guest/scannedinstances/10"
         scanned_instance.dbId = 104
         distribution = uforge.Distribution()
         distribution.name = "CentOS"
@@ -511,22 +476,6 @@ class TestImage(TestCase):
         images.images.append(image)
 
         return images
-
-    def create_appliances_do_info(self, appliance=None):
-        appliances = uforge.Appliances()
-        appliances.appliances = pyxb.BIND()
-        if appliance:
-            appliances.appliances.append(appliance)
-
-        return appliances
-
-    def create_scans_do_info(self, scan=None):
-        scans = uforge.Scans()
-        scans.scans = pyxb.BIND()
-        if scan:
-            scans.scans.append(scan)
-
-        return scans
 
     def create_pimages_do_info(self, pimage=None):
         pimages = uforge.publishImages()

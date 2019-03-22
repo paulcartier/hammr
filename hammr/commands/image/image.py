@@ -169,41 +169,32 @@ class Image(Cmd, CoreGlobal):
         print table.draw() + "\n"
 
     def do_info_draw_source(self, parent_uri, table):
-        appliances = self.api.Users(self.login).Appliances.Getall()
-        appliances = appliances.appliances.appliance
-        for appliance in appliances:
-            if parent_uri == appliance.uri:
-                table.add_row(["OS", appliance.distributionName + " " + appliance.archName])
-                table.add_row(["Template Id", appliance.dbId])
-                table.add_row(["Description", appliance.description])
-                return
+        appliance_id = self.get_uid_from_uri(parent_uri, "appliances")
+        if appliance_id:
+            appliance = self.api.Users(self.login).Appliances(appliance_id).Get()
+            table.add_row(["OS", appliance.distributionName + " " + appliance.archName])
+            table.add_row(["Template Id", appliance.dbId])
+            table.add_row(["Description", appliance.description])
+            return
 
-        scans = self.api.Users(self.login).Scans.Getall()
-        scans = scans.scans.scan
-        for scan in scans:
-            if parent_uri == scan.uri:
-                scanned_instances = self.api.Users(self.login).Scannedinstances.Getall()
-                scanned_instances = scanned_instances.scannedInstances.scannedInstance
-                for scanned_instance in scanned_instances:
-                    if scan.scannedInstanceUri == scanned_instance.uri:
-                        distro = scanned_instance.distribution
-                        table.add_row(["OS", distro.name + " " + distro.version + " " + distro.arch])
-                        table.add_row(["Scan Id", scanned_instance.dbId])
-                        return
+        scanned_instance_id = self.get_uid_from_uri(parent_uri, "scannedinstances")
+        if scanned_instance_id:
+            scanned_instance = self.api.Users(self.login).Scannedinstances(scanned_instance_id).Get()
+            distro = scanned_instance.distribution
+            table.add_row(["OS", distro.name + " " + distro.version + " " + distro.arch])
+            table.add_row(["Scan Id", scanned_instance.dbId])
+            return
 
-        my_software_list = self.api.Users(self.login).Mysoftware.Getall()
-        my_software_list = my_software_list.mySoftwareList.mySoftware
-        for my_software in my_software_list:
-            if parent_uri.startswith(my_software.uri):
-                container_templates = self.api.Users(self.login).Mysoftware(my_software.dbId).Templates.Getall()
-                container_templates = container_templates.containerTemplates.containerTemplate
-                for container_template in container_templates:
-                    if parent_uri == container_template.uri:
-                        distro = container_template.distribution
-                        table.add_row(["OS", distro.name + " " + distro.version + " " + distro.arch])
-                        table.add_row(["MySoftware Id", my_software.dbId])
-                        table.add_row(["Description", my_software.description])
-                        return
+        my_software_id = self.get_uid_from_uri(parent_uri, "mysoftware")
+        template_id = self.get_uid_from_uri(parent_uri, "templates")
+        if my_software_id and template_id:
+            my_software = self.api.Users(self.login).Mysoftware(my_software_id).Get()
+            container_template = self.api.Users(self.login).Mysoftware(my_software_id).Templates(template_id).Get()
+            distro = container_template.distribution
+            table.add_row(["OS", distro.name + " " + distro.version + " " + distro.arch])
+            table.add_row(["MySoftware Id", my_software.dbId])
+            table.add_row(["Description", my_software.description])
+            return
 
     def do_info_draw_generation(self, info_image):
         table = Texttable(0)
@@ -709,3 +700,10 @@ class Image(Cmd, CoreGlobal):
     def initialize_text_table(self, width):
         table = Texttable(width)
         return table
+
+    def get_uid_from_uri(self, uri, uid_type):
+        args = uri.split("/")
+        for index, arg in enumerate(args):
+            if arg == uid_type and index + 2 <= len(args):
+                return args[index + 1]
+        return None
