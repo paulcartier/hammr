@@ -130,10 +130,9 @@ class Image(Cmd, CoreGlobal):
                 printer.out("The image with id \"" + do_args.id + "\" doesn't exist.", printer.ERROR)
                 return 2
 
-            printer.out("Informations about [" + info_image.name + "] :")
+            printer.out("Information about [" + info_image.name + "]:")
 
             self.do_info_draw_general(info_image)
-            self.do_info_draw_generation(info_image)
             self.do_info_draw_publication(info_image)
             return 0
 
@@ -166,6 +165,8 @@ class Image(Cmd, CoreGlobal):
             table.add_row(["RegisteringName", info_image.registeringName])
             table.add_row(["Entrypoint", info_image.entrypoint])
 
+        self.do_info_draw_generation(info_image, table)
+
         print table.draw() + "\n"
 
     def do_info_draw_source(self, parent_uri, table):
@@ -196,43 +197,35 @@ class Image(Cmd, CoreGlobal):
             table.add_row(["Description", my_software.description])
             return
 
-    def do_info_draw_generation(self, info_image):
-        table = Texttable(0)
-        table.set_cols_align(["l", "l"])
-        table.header(["Status Details", ""])
-
-        if info_image.status.error:
-            status = "Error"
-        elif info_image.status.cancelled:
-            status = "Cancelled"
-        elif info_image.status.complete:
-            status = "Done"
-        else:
+    def do_info_draw_generation(self, info_image, table):
+        status = self.get_message_from_status(info_image.status)
+        if not status:
             status = "Generating"
-        table.add_row(["Status", status])
+        table.add_row(["Generation Status", status])
+        table.add_row(["Generation Message", info_image.status.message])
         if info_image.status.error:
-            table.add_row(["Error Message", info_image.status.message])
             table.add_row(["Detailed Error Message", info_image.status.errorMessage])
-        else:
-            table.add_row(["Message", info_image.status.message])
-
-        print table.draw() + "\n"
 
     def do_info_draw_publication(self, info_image):
+        printer.out("Information about publications:")
         pimages = self.api.Users(self.login).Pimages.Getall()
         table = Texttable(0)
         table.set_cols_align(["l", "l"])
-        table.header(["Published To Details", "Cloud Id"])
 
         has_pimage = False
         for pimage in pimages.publishImages.publishImage:
             if pimage.imageUri == info_image.uri:
                 has_pimage = True
-                table.add_row(["# Published", "Format Id : " + str(pimage.targetFormat.dbId) + " \nCloud Id : " + str(pimage.cloudId)])
-        if not has_pimage:
-            table.add_row(["# Published", "No published images"])
+                status = self.get_message_from_status(pimage.status)
+                if not status:
+                    status = "Publishing"
+                table.add_row([status, pimage.cloudId])
 
-        print table.draw() + "\n"
+        if has_pimage:
+            table.header(["Status", "Cloud Id"])
+            print table.draw() + "\n"
+        else:
+            printer.out("No publication")
 
     def help_info(self):
         do_parser = self.arg_info()
@@ -707,3 +700,13 @@ class Image(Cmd, CoreGlobal):
             if arg == uid_type and index + 2 <= len(args):
                 return args[index + 1]
         return None
+
+    def get_message_from_status(self, status):
+        if status.error:
+            return "Error"
+        elif status.cancelled:
+            return "Cancelled"
+        elif status.complete:
+            return "Done"
+        else:
+            return None

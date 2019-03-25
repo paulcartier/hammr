@@ -48,9 +48,8 @@ class TestImage(TestCase):
 
     @patch('uforge.application.Api._Users._Images.Getall')
     @patch('hammr.commands.image.image.Image.do_info_draw_publication')
-    @patch('hammr.commands.image.image.Image.do_info_draw_generation')
     @patch('hammr.commands.image.image.Image.do_info_draw_general')
-    def test_do_info_should_call_draw_methods(self, mock_draw_general, mock_draw_generation, mock_draw_publication, mock_api_getall):
+    def test_do_info_should_call_draw_methods(self, mock_draw_general, mock_draw_publication, mock_api_getall):
         # given
         i = self.prepare_image()
         info_image = self.create_image_do_info()
@@ -62,13 +61,13 @@ class TestImage(TestCase):
 
         # then
         mock_draw_general.assert_called_once_with(info_image)
-        mock_draw_generation.assert_called_once_with(info_image)
         mock_draw_publication.assert_called_once_with(info_image)
 
+    @patch('hammr.commands.image.image.Image.do_info_draw_generation')
     @patch('hammr.commands.image.image.Image.do_info_draw_source')
     @patch('texttable.Texttable.add_row')
     @patch('texttable.Texttable.draw')
-    def test_do_info_draw_general(self, mock_table_draw, mock_table_add_row, mock_draw_source):
+    def test_do_info_draw_general(self, mock_table_draw, mock_table_add_row, mock_draw_source, mock_draw_generation):
         # given
         i = self.prepare_image()
         info_image = self.create_image_do_info()
@@ -90,13 +89,15 @@ class TestImage(TestCase):
 
         mock_table_draw.assert_called_once()
         mock_draw_source.assert_called_once()
+        mock_draw_generation.assert_called_once()
         self.assertEquals(mock_table_add_row.call_count, 9)
         mock_table_add_row.assert_has_calls(calls)
 
+    @patch('hammr.commands.image.image.Image.do_info_draw_generation')
     @patch('hammr.commands.image.image.Image.do_info_draw_source')
     @patch('texttable.Texttable.add_row')
     @patch('texttable.Texttable.draw')
-    def test_do_info_draw_general_docker_image(self, mock_table_draw, mock_table_add_row, mock_draw_source):
+    def test_do_info_draw_general_docker_image(self, mock_table_draw, mock_table_add_row, mock_draw_source, mock_draw_generation):
         # given
         i = self.prepare_image()
         info_image = self.create_image_do_info_format_docker()
@@ -120,6 +121,7 @@ class TestImage(TestCase):
 
         mock_table_draw.assert_called_once()
         mock_draw_source.assert_called_once()
+        mock_draw_generation.assert_called_once()
         self.assertEquals(mock_table_add_row.call_count, 11)
         mock_table_add_row.assert_has_calls(calls)
 
@@ -187,78 +189,66 @@ class TestImage(TestCase):
         self.assertEquals(mock_table_add_row.call_count, 3)
         mock_table_add_row.assert_has_calls(calls)
 
+    @patch('hammr.commands.image.image.Image.get_message_from_status')
     @patch('texttable.Texttable.add_row')
-    @patch('texttable.Texttable.draw')
-    def test_do_info_draw_generation_without_error(self, mock_table_draw, mock_table_add_row):
+    def test_do_info_draw_generation_without_error(self, mock_table_add_row, mock_msg_from_status):
         # given
         i = self.prepare_image()
         info_image = self.create_image_do_info()
+        mock_msg_from_status.return_value = "Done"
 
         # when
-        i.do_info_draw_generation(info_image)
+        i.do_info_draw_generation(info_image, Texttable(0))
 
         # then
         calls = []
-        calls.append(call(["Status", "Done"]))
-        calls.append(call(["Message", info_image.status.message]))
+        calls.append(call(["Generation Status", "Done"]))
+        calls.append(call(["Generation Message", info_image.status.message]))
 
         self.assertEquals(mock_table_add_row.call_count, 2)
-        mock_table_draw.assert_called_once()
         mock_table_add_row.assert_has_calls(calls)
+        mock_msg_from_status.assert_called_once_with(info_image.status)
 
+    @patch('hammr.commands.image.image.Image.get_message_from_status')
     @patch('texttable.Texttable.add_row')
-    @patch('texttable.Texttable.draw')
-    def test_do_info_draw_generation_with_error(self, mock_table_draw, mock_table_add_row):
+    def test_do_info_draw_generation_with_error(self, mock_table_add_row, mock_msg_from_status):
         # given
         i = self.prepare_image()
         info_image = self.create_image_do_info_status_error()
+        mock_msg_from_status.return_value = "Error"
 
         # when
-        i.do_info_draw_generation(info_image)
+        i.do_info_draw_generation(info_image, Texttable(0))
 
         # then
         calls = []
-        calls.append(call(["Status", "Error"]))
-        calls.append(call(["Error Message", info_image.status.message]))
+        calls.append(call(["Generation Status", "Error"]))
+        calls.append(call(["Generation Message", info_image.status.message]))
         calls.append(call(["Detailed Error Message", info_image.status.errorMessage]))
 
         self.assertEquals(mock_table_add_row.call_count, 3)
-        mock_table_draw.assert_called_once()
         mock_table_add_row.assert_has_calls(calls)
+        mock_msg_from_status.assert_called_once_with(info_image.status)
 
+    @patch('hammr.commands.image.image.Image.get_message_from_status')
     @patch('uforge.application.Api._Users._Pimages.Getall')
     @patch('texttable.Texttable.add_row')
     @patch('texttable.Texttable.draw')
-    def test_do_info_draw_publication(self, mock_table_draw, mock_table_add_row, mock_api_pimg_getall):
+    def test_do_info_draw_publication(self, mock_table_draw, mock_table_add_row, mock_api_pimg_getall, mock_msg_from_status):
         # given
         i = self.prepare_image()
         info_image = self.create_image_do_info()
         pimage = self.create_pimage_do_info()
         mock_api_pimg_getall.return_value = self.create_pimages_do_info(pimage)
+        mock_msg_from_status.return_value = "Done"
 
         # when
         i.do_info_draw_publication(info_image)
 
         # then
+        mock_msg_from_status.assert_called_once_with(pimage.status)
         mock_table_draw.assert_called_once()
-        mock_table_add_row.assert_called_once_with(["# Published", "Format Id : " + str(pimage.targetFormat.dbId) + " \nCloud Id : " + str(pimage.cloudId)])
-
-    @patch('uforge.application.Api._Users._Pimages.Getall')
-    @patch('texttable.Texttable.add_row')
-    @patch('texttable.Texttable.draw')
-    def test_do_info_draw_publication_without_published_image(self, mock_table_draw, mock_table_add_row, mock_api_pimg_getall):
-        # given
-        i = self.prepare_image()
-        info_image = self.create_image_do_info()
-        pimage = self.create_pimages_do_info()
-        mock_api_pimg_getall.return_value = pimage
-
-        # when
-        i.do_info_draw_publication(info_image)
-
-        # then
-        mock_table_draw.assert_called_once()
-        mock_table_add_row.assert_called_once_with(["# Published", "No published images"])
+        mock_table_add_row.assert_called_once_with(["Done", pimage.cloudId])
 
     @patch('__builtin__.raw_input', return_value='yes')
     @patch('uforge.application.Api._Users._Images.Getall')
@@ -467,6 +457,10 @@ class TestImage(TestCase):
         pimage.imageUri = "users/14/appliances/102/images/1"
         pimage.targetFormat = uforge.targetFormat()
         pimage.targetFormat.dbId = 1234
+
+        status = uforge.OpStatus()
+        status.complete = True
+        pimage.status = status
 
         return pimage
 
