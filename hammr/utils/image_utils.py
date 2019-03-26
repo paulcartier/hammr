@@ -15,9 +15,12 @@
 
 def get_uid_from_uri(uri, uid_type):
     args = uri.split("/")
-    for index, arg in enumerate(args):
-        if arg == uid_type and index + 2 <= len(args):
-            return args[index + 1]
+    uid_type_found = False
+    for arg in args:
+        if uid_type_found:
+            return arg
+        else:
+            uid_type_found = arg == uid_type
     return None
 
 def get_message_from_status(op_status):
