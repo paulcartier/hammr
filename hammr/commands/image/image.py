@@ -220,7 +220,13 @@ class Image(Cmd, CoreGlobal):
                 publish_status = image_utils.get_message_from_status(pimage.status)
                 if not publish_status:
                     publish_status = "Publishing"
-                table.add_row([publish_status, pimage.cloudId])
+
+                cloud_id = pimage.cloudId
+                format_name = info_image.targetFormat.format.name
+                if format_name == "docker" or format_name == "openshift":
+                    cloud_id = pimage.namespace + "/" + pimage.repositoryName + ":" + pimage.tagName
+
+                table.add_row([publish_status, cloud_id])
 
         if has_pimage:
             table.header(["Status", "Cloud Id"])
