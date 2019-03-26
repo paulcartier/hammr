@@ -17,15 +17,15 @@ from unittest import TestCase
 
 import pyxb
 from mock import patch, ANY, call
+from texttable import Texttable
+import datetime
+from hurry.filesize import size
+
 from uforge.application import Api
 from uforge.objects import uforge
-
 from hammr.commands.image import image
-from texttable import Texttable
-
-from hurry.filesize import size
 from hammr.utils import constants
-import datetime
+from tests.unit.commands.image.info_test_utils import *
 
 class TestImage(TestCase):
 
@@ -52,9 +52,9 @@ class TestImage(TestCase):
     def test_do_info_should_call_draw_methods(self, mock_draw_general, mock_draw_publication, mock_api_getall):
         # given
         i = self.prepare_image()
-        info_image = self.create_image_do_info()
+        info_image = create_image_do_info()
 
-        mock_api_getall.return_value = self.create_images_do_info(info_image)
+        mock_api_getall.return_value = create_images_do_info(info_image)
 
         # when
         i.do_info("--id 1")
@@ -70,7 +70,7 @@ class TestImage(TestCase):
     def test_do_info_draw_general(self, mock_table_draw, mock_table_add_row, mock_draw_source, mock_draw_generation):
         # given
         i = self.prepare_image()
-        info_image = self.create_image_do_info()
+        info_image = create_image_do_info()
 
         # when
         i.do_info_draw_general(info_image)
@@ -90,17 +90,18 @@ class TestImage(TestCase):
         mock_table_draw.assert_called_once()
         mock_draw_source.assert_called_once()
         mock_draw_generation.assert_called_once()
-        self.assertEquals(mock_table_add_row.call_count, 9)
+        assert mock_table_add_row.call_count == 9
         mock_table_add_row.assert_has_calls(calls)
 
     @patch('hammr.commands.image.image.Image.do_info_draw_generation')
     @patch('hammr.commands.image.image.Image.do_info_draw_source')
     @patch('texttable.Texttable.add_row')
     @patch('texttable.Texttable.draw')
-    def test_do_info_draw_general_docker_image(self, mock_table_draw, mock_table_add_row, mock_draw_source, mock_draw_generation):
+    def test_do_info_draw_general_docker_image(self, mock_table_draw, mock_table_add_row,
+                                               mock_draw_source, mock_draw_generation):
         # given
         i = self.prepare_image()
-        info_image = self.create_image_do_info_format_docker()
+        info_image = create_image_do_info_format_docker()
 
         # when
         i.do_info_draw_general(info_image)
@@ -122,7 +123,7 @@ class TestImage(TestCase):
         mock_table_draw.assert_called_once()
         mock_draw_source.assert_called_once()
         mock_draw_generation.assert_called_once()
-        self.assertEquals(mock_table_add_row.call_count, 11)
+        assert mock_table_add_row.call_count == 11
         mock_table_add_row.assert_has_calls(calls)
 
     @patch('uforge.application.Api._Users._Appliances.Get')
@@ -130,7 +131,7 @@ class TestImage(TestCase):
     def test_do_info_draw_source_appliance(self, mock_table_add_row, mock_api_appliances_get):
         # given
         i = self.prepare_image()
-        appliance = self.create_appliance_do_info()
+        appliance = create_appliance_do_info()
         mock_api_appliances_get.return_value = appliance
 
         # when
@@ -142,7 +143,7 @@ class TestImage(TestCase):
         calls.append(call(["Template Id", appliance.dbId]))
         calls.append(call(["Description", appliance.description]))
 
-        self.assertEquals(mock_table_add_row.call_count, 3)
+        assert mock_table_add_row.call_count == 3
         mock_table_add_row.assert_has_calls(calls)
 
     @patch('uforge.application.Api._Users._Scannedinstances.Get')
@@ -150,7 +151,7 @@ class TestImage(TestCase):
     def test_do_info_draw_source_scan(self, mock_table_add_row, mock_api_scannedinstances_get):
         # given
         i = self.prepare_image()
-        scanned_instance = self.create_scanned_instance_do_info()
+        scanned_instance = create_scanned_instance_do_info()
         mock_api_scannedinstances_get.return_value = scanned_instance
 
         # when
@@ -162,7 +163,7 @@ class TestImage(TestCase):
         calls.append(call(["OS", distro.name + " " + distro.version + " " + distro.arch]))
         calls.append(call(["Scan Id", scanned_instance.dbId]))
 
-        self.assertEquals(mock_table_add_row.call_count, 2)
+        assert mock_table_add_row.call_count == 2
         mock_table_add_row.assert_has_calls(calls)
 
     @patch('uforge.application.Api._Users._Mysoftware._Templates.Get')
@@ -171,8 +172,8 @@ class TestImage(TestCase):
     def test_do_info_draw_source_my_software(self, mock_table_add_row, mock_api_mysoftware_get, mock_api_templates_get):
         # given
         i = self.prepare_image()
-        my_software = self.create_my_software_do_info()
-        container_template = self.create_container_template_do_info()
+        my_software = create_my_software_do_info()
+        container_template = create_container_template_do_info()
         mock_api_mysoftware_get.return_value = my_software
         mock_api_templates_get.return_value = container_template
 
@@ -186,15 +187,15 @@ class TestImage(TestCase):
         calls.append(call(["MySoftware Id", my_software.dbId]))
         calls.append(call(["Description", my_software.description]))
 
-        self.assertEquals(mock_table_add_row.call_count, 3)
+        assert mock_table_add_row.call_count == 3
         mock_table_add_row.assert_has_calls(calls)
 
-    @patch('hammr.commands.image.image.Image.get_message_from_status')
+    @patch('hammr.utils.image_utils.get_message_from_status')
     @patch('texttable.Texttable.add_row')
     def test_do_info_draw_generation_without_error(self, mock_table_add_row, mock_msg_from_status):
         # given
         i = self.prepare_image()
-        info_image = self.create_image_do_info()
+        info_image = create_image_do_info()
         mock_msg_from_status.return_value = "Done"
 
         # when
@@ -205,16 +206,16 @@ class TestImage(TestCase):
         calls.append(call(["Generation Status", "Done"]))
         calls.append(call(["Generation Message", info_image.status.message]))
 
-        self.assertEquals(mock_table_add_row.call_count, 2)
+        assert mock_table_add_row.call_count == 2
         mock_table_add_row.assert_has_calls(calls)
         mock_msg_from_status.assert_called_once_with(info_image.status)
 
-    @patch('hammr.commands.image.image.Image.get_message_from_status')
+    @patch('hammr.utils.image_utils.get_message_from_status')
     @patch('texttable.Texttable.add_row')
     def test_do_info_draw_generation_with_error(self, mock_table_add_row, mock_msg_from_status):
         # given
         i = self.prepare_image()
-        info_image = self.create_image_do_info_status_error()
+        info_image = create_image_do_info_status_error()
         mock_msg_from_status.return_value = "Error"
 
         # when
@@ -226,20 +227,21 @@ class TestImage(TestCase):
         calls.append(call(["Generation Message", info_image.status.message]))
         calls.append(call(["Detailed Error Message", info_image.status.errorMessage]))
 
-        self.assertEquals(mock_table_add_row.call_count, 3)
+        assert mock_table_add_row.call_count == 3
         mock_table_add_row.assert_has_calls(calls)
         mock_msg_from_status.assert_called_once_with(info_image.status)
 
-    @patch('hammr.commands.image.image.Image.get_message_from_status')
+    @patch('hammr.utils.image_utils.get_message_from_status')
     @patch('uforge.application.Api._Users._Pimages.Getall')
     @patch('texttable.Texttable.add_row')
     @patch('texttable.Texttable.draw')
-    def test_do_info_draw_publication(self, mock_table_draw, mock_table_add_row, mock_api_pimg_getall, mock_msg_from_status):
+    def test_do_info_draw_publication(self, mock_table_draw, mock_table_add_row,
+                                      mock_api_pimg_getall, mock_msg_from_status):
         # given
         i = self.prepare_image()
-        info_image = self.create_image_do_info()
-        pimage = self.create_pimage_do_info()
-        mock_api_pimg_getall.return_value = self.create_pimages_do_info(pimage)
+        info_image = create_image_do_info()
+        pimage = create_pimage_do_info()
+        mock_api_pimg_getall.return_value = create_pimages_do_info(pimage)
         mock_msg_from_status.return_value = "Done"
 
         # when
@@ -373,108 +375,3 @@ class TestImage(TestCase):
         new_images.images.append(new_image)
 
         return new_images
-
-    def create_image_do_info(self):
-        image = self.create_image("aws")
-
-        image.name = "test image"
-        image.dbId = 1
-        image.version = "1"
-        image.revision = "2"
-        image.uri = "users/14/appliances/102/images/1"
-        image.fileSize = 1000
-        image.compress = True
-        image.created = datetime.datetime.now()
-
-        status = uforge.OpStatus()
-        status.message = "message"
-        status.complete = True
-        image.status = status
-
-        return image
-
-    def create_image_do_info_format_docker(self):
-        image = self.create_image_do_info()
-        image.targetFormat.name = "docker"
-        image.targetFormat.format.name = "docker"
-        image.registeringName = "registering name"
-        image.entrypoint = "['\/usr\/sbin\/httpd','-DFOREGROUND']"
-
-        return image
-
-    def create_image_do_info_status_error(self):
-        image = self.create_image_do_info()
-        image.status.complete = False
-        image.status.error = True
-        image.status.errorMessage = "error message"
-
-        return image
-
-    def create_appliance_do_info(self):
-        appliance = uforge.Appliance()
-        appliance.distributionName = "CentOS 7"
-        appliance.archName = "x86_64"
-        appliance.dbId = 104
-        appliance.uri = "users/guest/appliances/104"
-        appliance.description = "Description"
-
-        return appliance
-
-    def create_scanned_instance_do_info(self):
-        scanned_instance = uforge.ScannedInstance()
-        scanned_instance.uri = "users/guest/scannedinstances/10"
-        scanned_instance.dbId = 104
-        distribution = uforge.Distribution()
-        distribution.name = "CentOS"
-        distribution.version = "7"
-        distribution.arch = "x86_64"
-        scanned_instance.distribution = distribution
-
-        return scanned_instance
-
-    def create_my_software_do_info(self):
-        my_software = uforge.MySoftware()
-        my_software.uri = "users/guest/mysoftware/518"
-        my_software.dbId = 10
-        my_software.description = "description"
-
-        return my_software
-
-    def create_container_template_do_info(self):
-        container_template = uforge.ContainerTemplate()
-        container_template.uri = "users/guest/mysoftware/518/templates/1"
-        distribution = uforge.Distribution()
-        distribution.name = "CentOS"
-        distribution.version = "7"
-        distribution.arch = "x86_64"
-        container_template.distribution = distribution
-
-        return container_template
-
-    def create_pimage_do_info(self):
-        pimage = uforge.PublishImageAws()
-        pimage.cloudId = "Cloud ID"
-        pimage.imageUri = "users/14/appliances/102/images/1"
-        pimage.targetFormat = uforge.targetFormat()
-        pimage.targetFormat.dbId = 1234
-
-        status = uforge.OpStatus()
-        status.complete = True
-        pimage.status = status
-
-        return pimage
-
-    def create_images_do_info(self, image):
-        images = uforge.Images()
-        images.images = pyxb.BIND()
-        images.images.append(image)
-
-        return images
-
-    def create_pimages_do_info(self, pimage=None):
-        pimages = uforge.publishImages()
-        pimages.publishImages = pyxb.BIND()
-        if pimage:
-            pimages.publishImages.append(pimage)
-
-        return pimages

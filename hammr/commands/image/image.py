@@ -30,6 +30,7 @@ from hammr.utils.hammr_utils import *
 from hammr.utils.deployment_utils import *
 from hammr.utils.publish_utils import *
 from hammr.utils.publish_builders import *
+from hammr.utils import image_utils
 
 #This import and configuration avoid pyxb warnings about xmls
 import logging
@@ -110,7 +111,7 @@ class Image(Cmd, CoreGlobal):
 
     def arg_info(self):
         do_parser = ArgumentParser(prog=self.cmd_name + " info", add_help=True,
-                                  description="Displays detailed information about a machine image")
+                                   description="Displays detailed information about a machine image")
         mandatory = do_parser.add_argument_group("mandatory arguments")
         mandatory.add_argument('--id', dest='id', type=str, required=True,
                                help="the ID of the machine image to retrieve")
@@ -123,9 +124,9 @@ class Image(Cmd, CoreGlobal):
             if not do_args:
                 return 2
 
-            images = self.get_all_images()
+            image_list = self.get_all_images()
 
-            info_image = self.get_image(images, do_args.id)
+            info_image = self.get_image(image_list, do_args.id)
             if info_image is None:
                 printer.out("The image with id \"" + do_args.id + "\" doesn't exist.", printer.ERROR)
                 return 2
@@ -136,11 +137,11 @@ class Image(Cmd, CoreGlobal):
             self.do_info_draw_publication(info_image)
             return 0
 
-        except ArgumentParserError as e:
-            printer.out("In Arguments: " + str(e), printer.ERROR)
+        except ArgumentParserError as error:
+            printer.out("In Arguments: " + str(error), printer.ERROR)
             self.help_info()
-        except Exception as e:
-            return handle_uforge_exception(e)
+        except Exception as exception:
+            return handle_uforge_exception(exception)
 
     def do_info_draw_general(self, info_image):
         table = Texttable(0)
@@ -170,15 +171,15 @@ class Image(Cmd, CoreGlobal):
         print table.draw() + "\n"
 
     def do_info_draw_source(self, parent_uri, table):
-        appliance_id = self.get_uid_from_uri(parent_uri, "appliances")
+        appliance_id = image_utils.get_uid_from_uri(parent_uri, "appliances")
         if appliance_id:
-            appliance = self.api.Users(self.login).Appliances(appliance_id).Get()
-            table.add_row(["OS", appliance.distributionName + " " + appliance.archName])
-            table.add_row(["Template Id", appliance.dbId])
-            table.add_row(["Description", appliance.description])
+            app = self.api.Users(self.login).Appliances(appliance_id).Get()
+            table.add_row(["OS", app.distributionName + " " + app.archName])
+            table.add_row(["Template Id", app.dbId])
+            table.add_row(["Description", app.description])
             return
 
-        scanned_instance_id = self.get_uid_from_uri(parent_uri, "scannedinstances")
+        scanned_instance_id = image_utils.get_uid_from_uri(parent_uri, "scannedinstances")
         if scanned_instance_id:
             scanned_instance = self.api.Users(self.login).Scannedinstances(scanned_instance_id).Get()
             distro = scanned_instance.distribution
@@ -186,8 +187,8 @@ class Image(Cmd, CoreGlobal):
             table.add_row(["Scan Id", scanned_instance.dbId])
             return
 
-        my_software_id = self.get_uid_from_uri(parent_uri, "mysoftware")
-        template_id = self.get_uid_from_uri(parent_uri, "templates")
+        my_software_id = image_utils.get_uid_from_uri(parent_uri, "mysoftware")
+        template_id = image_utils.get_uid_from_uri(parent_uri, "templates")
         if my_software_id and template_id:
             my_software = self.api.Users(self.login).Mysoftware(my_software_id).Get()
             container_template = self.api.Users(self.login).Mysoftware(my_software_id).Templates(template_id).Get()
@@ -198,10 +199,10 @@ class Image(Cmd, CoreGlobal):
             return
 
     def do_info_draw_generation(self, info_image, table):
-        status = self.get_message_from_status(info_image.status)
-        if not status:
-            status = "Generating"
-        table.add_row(["Generation Status", status])
+        generation_status = image_utils.get_message_from_status(info_image.status)
+        if not generation_status:
+            generation_status = "Generating"
+        table.add_row(["Generation Status", generation_status])
         table.add_row(["Generation Message", info_image.status.message])
         if info_image.status.error:
             table.add_row(["Detailed Error Message", info_image.status.errorMessage])
@@ -216,10 +217,10 @@ class Image(Cmd, CoreGlobal):
         for pimage in pimages.publishImages.publishImage:
             if pimage.imageUri == info_image.uri:
                 has_pimage = True
-                status = self.get_message_from_status(pimage.status)
-                if not status:
-                    status = "Publishing"
-                table.add_row([status, pimage.cloudId])
+                publish_status = image_utils.get_message_from_status(pimage.status)
+                if not publish_status:
+                    publish_status = "Publishing"
+                table.add_row([publish_status, pimage.cloudId])
 
         if has_pimage:
             table.header(["Status", "Cloud Id"])
@@ -693,20 +694,3 @@ class Image(Cmd, CoreGlobal):
     def initialize_text_table(self, width):
         table = Texttable(width)
         return table
-
-    def get_uid_from_uri(self, uri, uid_type):
-        args = uri.split("/")
-        for index, arg in enumerate(args):
-            if arg == uid_type and index + 2 <= len(args):
-                return args[index + 1]
-        return None
-
-    def get_message_from_status(self, status):
-        if status.error:
-            return "Error"
-        elif status.cancelled:
-            return "Cancelled"
-        elif status.complete:
-            return "Done"
-        else:
-            return None
