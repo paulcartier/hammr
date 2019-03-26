@@ -13,24 +13,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import pyxb
 import datetime
+import pyxb
 from uforge.objects import uforge
 
-def create_image(target_format_name):
+def create_image():
     image_format = uforge.ImageFormat()
-    image_format.name = target_format_name
+    image_format.name = "aws"
 
     target_format = uforge.TargetFormat()
-    target_format.name = target_format_name
+    target_format.name = "aws"
     target_format.format = image_format
 
     image = uforge.Image()
     image.targetFormat = target_format
-    return image
-
-def create_image_do_info():
-    image = create_image("aws")
 
     image.name = "test image"
     image.dbId = 1
@@ -49,8 +45,8 @@ def create_image_do_info():
     return image
 
 
-def create_image_do_info_format_docker():
-    image = create_image_do_info()
+def create_image_format_docker():
+    image = create_image()
     image.targetFormat.name = "docker"
     image.targetFormat.format.name = "docker"
     image.registeringName = "registering name"
@@ -59,8 +55,8 @@ def create_image_do_info_format_docker():
     return image
 
 
-def create_image_do_info_status_error():
-    image = create_image_do_info()
+def create_image_status_error():
+    image = create_image()
     image.status.complete = False
     image.status.error = True
     image.status.errorMessage = "error message"
@@ -68,7 +64,7 @@ def create_image_do_info_status_error():
     return image
 
 
-def create_appliance_do_info():
+def create_appliance():
     appliance = uforge.Appliance()
     appliance.distributionName = "CentOS 7"
     appliance.archName = "x86_64"
@@ -79,7 +75,7 @@ def create_appliance_do_info():
     return appliance
 
 
-def create_scanned_instance_do_info():
+def create_scanned_instance():
     scanned_instance = uforge.ScannedInstance()
     scanned_instance.uri = "users/guest/scannedinstances/10"
     scanned_instance.dbId = 104
@@ -92,7 +88,7 @@ def create_scanned_instance_do_info():
     return scanned_instance
 
 
-def create_my_software_do_info():
+def create_my_software():
     my_software = uforge.MySoftware()
     my_software.uri = "users/guest/mysoftware/518"
     my_software.dbId = 10
@@ -101,7 +97,7 @@ def create_my_software_do_info():
     return my_software
 
 
-def create_container_template_do_info():
+def create_container_template():
     container_template = uforge.ContainerTemplate()
     container_template.uri = "users/guest/mysoftware/518/templates/1"
     distribution = uforge.Distribution()
@@ -113,7 +109,7 @@ def create_container_template_do_info():
     return container_template
 
 
-def create_pimage_do_info():
+def create_pimage():
     pimage = uforge.PublishImageAws()
     pimage.cloudId = "Cloud ID"
     pimage.imageUri = "users/14/appliances/102/images/1"
@@ -127,7 +123,7 @@ def create_pimage_do_info():
     return pimage
 
 
-def create_images_do_info(image):
+def create_images(image):
     images = uforge.Images()
     images.images = pyxb.BIND()
     images.images.append(image)
@@ -135,7 +131,7 @@ def create_images_do_info(image):
     return images
 
 
-def create_pimages_do_info(pimage=None):
+def create_pimages(pimage=None):
     pimages = uforge.publishImages()
     pimages.publishImages = pyxb.BIND()
     if pimage:

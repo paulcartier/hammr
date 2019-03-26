@@ -15,17 +15,17 @@
 #    under the License.
 from unittest import TestCase
 
+import datetime
 import pyxb
 from mock import patch, ANY, call
 from texttable import Texttable
-import datetime
 from hurry.filesize import size
 
 from uforge.application import Api
 from uforge.objects import uforge
 from hammr.commands.image import image
 from hammr.utils import constants
-from tests.unit.commands.image.info_test_utils import *
+import tests.unit.commands.image.info_test_utils as info_utils
 
 class TestImage(TestCase):
 
@@ -52,9 +52,9 @@ class TestImage(TestCase):
     def test_do_info_should_call_draw_methods(self, mock_draw_general, mock_draw_publication, mock_api_getall):
         # given
         i = self.prepare_image()
-        info_image = create_image_do_info()
+        info_image = info_utils.create_image()
 
-        mock_api_getall.return_value = create_images_do_info(info_image)
+        mock_api_getall.return_value = info_utils.create_images(info_image)
 
         # when
         i.do_info("--id 1")
@@ -70,7 +70,7 @@ class TestImage(TestCase):
     def test_do_info_draw_general(self, mock_table_draw, mock_table_add_row, mock_draw_source, mock_draw_generation):
         # given
         i = self.prepare_image()
-        info_image = create_image_do_info()
+        info_image = info_utils.create_image()
 
         # when
         i.do_info_draw_general(info_image)
@@ -101,7 +101,7 @@ class TestImage(TestCase):
                                                mock_draw_source, mock_draw_generation):
         # given
         i = self.prepare_image()
-        info_image = create_image_do_info_format_docker()
+        info_image = info_utils.create_image_format_docker()
 
         # when
         i.do_info_draw_general(info_image)
@@ -131,7 +131,7 @@ class TestImage(TestCase):
     def test_do_info_draw_source_appliance(self, mock_table_add_row, mock_api_appliances_get):
         # given
         i = self.prepare_image()
-        appliance = create_appliance_do_info()
+        appliance = info_utils.create_appliance()
         mock_api_appliances_get.return_value = appliance
 
         # when
@@ -151,7 +151,7 @@ class TestImage(TestCase):
     def test_do_info_draw_source_scan(self, mock_table_add_row, mock_api_scannedinstances_get):
         # given
         i = self.prepare_image()
-        scanned_instance = create_scanned_instance_do_info()
+        scanned_instance = info_utils.create_scanned_instance()
         mock_api_scannedinstances_get.return_value = scanned_instance
 
         # when
@@ -172,8 +172,8 @@ class TestImage(TestCase):
     def test_do_info_draw_source_my_software(self, mock_table_add_row, mock_api_mysoftware_get, mock_api_templates_get):
         # given
         i = self.prepare_image()
-        my_software = create_my_software_do_info()
-        container_template = create_container_template_do_info()
+        my_software = info_utils.create_my_software()
+        container_template = info_utils.create_container_template()
         mock_api_mysoftware_get.return_value = my_software
         mock_api_templates_get.return_value = container_template
 
@@ -195,7 +195,7 @@ class TestImage(TestCase):
     def test_do_info_draw_generation_without_error(self, mock_table_add_row, mock_msg_from_status):
         # given
         i = self.prepare_image()
-        info_image = create_image_do_info()
+        info_image = info_utils.create_image()
         mock_msg_from_status.return_value = "Done"
 
         # when
@@ -215,7 +215,7 @@ class TestImage(TestCase):
     def test_do_info_draw_generation_with_error(self, mock_table_add_row, mock_msg_from_status):
         # given
         i = self.prepare_image()
-        info_image = create_image_do_info_status_error()
+        info_image = info_utils.create_image_status_error()
         mock_msg_from_status.return_value = "Error"
 
         # when
@@ -239,9 +239,9 @@ class TestImage(TestCase):
                                       mock_api_pimg_getall, mock_msg_from_status):
         # given
         i = self.prepare_image()
-        info_image = create_image_do_info()
-        pimage = create_pimage_do_info()
-        mock_api_pimg_getall.return_value = create_pimages_do_info(pimage)
+        info_image = info_utils.create_image()
+        pimage = info_utils.create_pimage()
+        mock_api_pimg_getall.return_value = info_utils.create_pimages(pimage)
         mock_msg_from_status.return_value = "Done"
 
         # when
