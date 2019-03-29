@@ -163,8 +163,11 @@ class Image(Cmd, CoreGlobal):
 
         format_name = info_image.targetFormat.format.name
         if format_name == "docker" or format_name == "openshift":
-            table.add_row(["RegisteringName", info_image.registeringName])
-            table.add_row(["Entrypoint", info_image.entrypoint])
+            registring_name = None
+            if info_image.status.complete:
+                registring_name = info_image.registeringName
+            table.add_row(["RegisteringName",registring_name])
+            table.add_row(["Entrypoint", info_image.entrypoint.replace("\\", "")])
 
         self.do_info_draw_generation(info_image, table)
 
@@ -217,14 +220,16 @@ class Image(Cmd, CoreGlobal):
         for pimage in pimages.publishImages.publishImage:
             if pimage.imageUri == info_image.uri:
                 has_pimage = True
+                cloud_id = None
                 publish_status = image_utils.get_message_from_status(pimage.status)
                 if not publish_status:
                     publish_status = "Publishing"
 
-                cloud_id = pimage.cloudId
-                format_name = info_image.targetFormat.format.name
-                if format_name == "docker" or format_name == "openshift":
-                    cloud_id = pimage.namespace + "/" + pimage.repositoryName + ":" + pimage.tagName
+                if publish_status == "Done":
+                    cloud_id = pimage.cloudId
+                    format_name = info_image.targetFormat.format.name
+                    if format_name == "docker" or format_name == "openshift":
+                        cloud_id = pimage.namespace + "/" + pimage.repositoryName + ":" + pimage.tagName
 
                 table.add_row([publish_status, cloud_id])
 
